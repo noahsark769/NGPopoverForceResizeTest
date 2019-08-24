@@ -9,22 +9,43 @@
 import UIKit
 
 class LargeViewControllerWithNavBar: UIViewController {
-    var button: UIButton! = nil
+    private let stackView: UIStackView = {
+        let view = UIStackView()
+        view.axis = .vertical
+        view.spacing = 10
+        return view
+    }()
     var heightConstraint: NSLayoutConstraint! = nil
+    var isExpanded: Bool = false {
+        didSet {
+            if self.isExpanded {
+                self.heightConstraint.constant = 600
+            } else {
+                self.heightConstraint.constant = 400
+            }
+            self.setPreferredContentSizeFromAutolayout()
+        }
+    }
 
     override func viewDidLoad() {
         self.view.backgroundColor = .green
-        self.title = "Title Here"
+        self.title = "This is a title"
 
-        button = UIButton()
-        button.setTitle("Tap to expand", for: .normal)
+        let label = UILabel()
+        label.text = "This controller starts at 600x400"
+
+        let button = UIButton()
+        button.setTitle("Tap to expand/contract", for: .normal)
         button.setTitleColor(.blue, for: .normal)
         button.addTarget(self, action: #selector(didTap), for: .touchUpInside)
-        self.view.addSubview(button)
-        button.translatesAutoresizingMaskIntoConstraints = false
 
-        button.centerXAnchor.constraint(equalTo: self.view.centerXAnchor).isActive = true
-        button.centerYAnchor.constraint(equalTo: self.view.centerYAnchor).isActive = true
+        stackView.addArrangedSubview(label)
+        stackView.addArrangedSubview(button)
+
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        self.view.addSubview(stackView)
+        stackView.centerXAnchor.constraint(equalTo: self.view.centerXAnchor).isActive = true
+        stackView.centerYAnchor.constraint(equalTo: self.view.centerYAnchor).isActive = true
 
         self.view.widthAnchor.constraint(equalToConstant: 600).isActive = true
         heightConstraint = self.view.heightAnchor.constraint(equalToConstant: 400)
@@ -51,26 +72,37 @@ class LargeViewControllerWithNavBar: UIViewController {
     }
 
     @objc private func didTap() {
-        heightConstraint.constant = 500
-        setPreferredContentSizeFromAutolayout()
+        self.isExpanded = !self.isExpanded
     }
 }
 
 
 class SmallViewControllerNoNavBar: UIViewController {
-    var button: UIButton! = nil
+    private let stackView: UIStackView = {
+        let view = UIStackView()
+        view.axis = .vertical
+        view.spacing = 10
+        return view
+    }()
+
     override func viewDidLoad() {
         self.view.backgroundColor = .red
 
-        button = UIButton()
-        button.setTitle("This view is 300x300", for: .normal)
+        let label = UILabel()
+        label.text = "This controller is 300x300"
+
+        let button = UIButton()
+        button.setTitle("Push another controller", for: .normal)
         button.setTitleColor(.blue, for: .normal)
         button.addTarget(self, action: #selector(didTap), for: .touchUpInside)
-        self.view.addSubview(button)
-        button.translatesAutoresizingMaskIntoConstraints = false
 
-        button.centerXAnchor.constraint(equalTo: self.view.centerXAnchor).isActive = true
-        button.centerYAnchor.constraint(equalTo: self.view.centerYAnchor).isActive = true
+        stackView.addArrangedSubview(label)
+        stackView.addArrangedSubview(button)
+
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        self.view.addSubview(stackView)
+        stackView.centerXAnchor.constraint(equalTo: self.view.centerXAnchor).isActive = true
+        stackView.centerYAnchor.constraint(equalTo: self.view.centerYAnchor).isActive = true
 
         self.view.widthAnchor.constraint(equalToConstant: 300).isActive = true
         self.view.heightAnchor.constraint(equalToConstant: 300).isActive = true
@@ -97,11 +129,17 @@ class SmallViewControllerNoNavBar: UIViewController {
     }
 }
 
+final class PopoverPushNavigationControllerSubclass: UINavigationController {
+    override func preferredContentSizeDidChange(forChildContentContainer container: UIContentContainer) {
+        self.preferredContentSize = container.preferredContentSize
+    }
+}
+
 final class PopoverPushNavigationController: UIViewController {
-    private let wrappedNavigationController: UINavigationController
+    private let wrappedNavigationController: PopoverPushNavigationControllerSubclass
 
     init(rootViewController: UIViewController) {
-        self.wrappedNavigationController = UINavigationController(rootViewController: rootViewController)
+        self.wrappedNavigationController = PopoverPushNavigationControllerSubclass(rootViewController: rootViewController)
         super.init(nibName: nil, bundle: nil)
         self.wrappedNavigationController.delegate = self
     }
@@ -127,9 +165,6 @@ extension PopoverPushNavigationController: UINavigationControllerDelegate {
         // Set our preferred content size so that UIKit knows to animate down to the new view controller's
         // preferred content size
         navigationController.preferredContentSize = viewController.preferredContentSize
-
-        // If there are no toolbar items, we don't want a nav bar
-        navigationController.setToolbarHidden(viewController.toolbarItems?.isEmpty ?? true, animated: animated)
     }
 }
 
