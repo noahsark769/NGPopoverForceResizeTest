@@ -47,21 +47,22 @@ class LargeViewControllerWithNavBar: UIViewController {
         stackView.centerXAnchor.constraint(equalTo: self.view.centerXAnchor).isActive = true
         stackView.centerYAnchor.constraint(equalTo: self.view.centerYAnchor).isActive = true
 
-        self.view.widthAnchor.constraint(equalToConstant: 600).isActive = true
+        let widthConstraint = self.view.widthAnchor.constraint(equalToConstant: 600)
+        widthConstraint.priority = .defaultHigh
+        widthConstraint.isActive = true
         heightConstraint = self.view.heightAnchor.constraint(equalToConstant: 400)
+        heightConstraint.priority = .defaultHigh
         heightConstraint.isActive = true
     }
 
     func setPreferredContentSizeFromAutolayout() {
-        let size = self.view.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
-        let contentSize = CGSize(
-            width: max(
-                size.width,
-                100
-            ),
-            height: size.height
+        let contentSize = self.view.systemLayoutSizeFitting(
+            UIView.layoutFittingCompressedSize
         )
         self.preferredContentSize = contentSize
+        self.popoverPresentationController?
+            .presentedViewController
+            .preferredContentSize = contentSize
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -104,24 +105,22 @@ class SmallViewControllerNoNavBar: UIViewController {
         stackView.centerXAnchor.constraint(equalTo: self.view.centerXAnchor).isActive = true
         stackView.centerYAnchor.constraint(equalTo: self.view.centerYAnchor).isActive = true
 
-        self.view.widthAnchor.constraint(equalToConstant: 300).isActive = true
-        self.view.heightAnchor.constraint(equalToConstant: 300).isActive = true
+        let widthConstraint = self.view.widthAnchor.constraint(equalToConstant: 300)
+        widthConstraint.priority = .defaultHigh
+        widthConstraint.isActive = true
+        let heightConstraint = self.view.heightAnchor.constraint(equalToConstant: 300)
+        heightConstraint.priority = .defaultHigh
+        heightConstraint.isActive = true
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
 
+        self.navigationController?.setToolbarHidden(true, animated: false)
         self.navigationController?.setNavigationBarHidden(true, animated: false)
-
-        let size = self.view.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize)
-        let contentSize = CGSize(
-            width: max(
-                size.width,
-                100
-            ),
-            height: size.height
+        self.preferredContentSize = self.view.systemLayoutSizeFitting(
+            UIView.layoutFittingCompressedSize
         )
-        self.preferredContentSize = contentSize
     }
 
     @objc private func didTap() {
@@ -129,17 +128,11 @@ class SmallViewControllerNoNavBar: UIViewController {
     }
 }
 
-final class PopoverPushNavigationControllerSubclass: UINavigationController {
-    override func preferredContentSizeDidChange(forChildContentContainer container: UIContentContainer) {
-        self.preferredContentSize = container.preferredContentSize
-    }
-}
-
-final class PopoverPushNavigationController: UIViewController {
-    private let wrappedNavigationController: PopoverPushNavigationControllerSubclass
+final class PopoverPushController: UIViewController {
+    private let wrappedNavigationController: UINavigationController
 
     init(rootViewController: UIViewController) {
-        self.wrappedNavigationController = PopoverPushNavigationControllerSubclass(rootViewController: rootViewController)
+        self.wrappedNavigationController = UINavigationController(rootViewController: rootViewController)
         super.init(nibName: nil, bundle: nil)
         self.wrappedNavigationController.delegate = self
     }
@@ -154,17 +147,13 @@ final class PopoverPushNavigationController: UIViewController {
         self.addChild(wrappedNavigationController)
         self.view.addSubview(wrappedNavigationController.view)
     }
-
-    override func preferredContentSizeDidChange(forChildContentContainer container: UIContentContainer) {
-        self.preferredContentSize = container.preferredContentSize
-    }
 }
 
-extension PopoverPushNavigationController: UINavigationControllerDelegate {
+extension PopoverPushController: UINavigationControllerDelegate {
     func navigationController(_ navigationController: UINavigationController, willShow viewController: UIViewController, animated: Bool) {
         // Set our preferred content size so that UIKit knows to animate down to the new view controller's
         // preferred content size
-        navigationController.preferredContentSize = viewController.preferredContentSize
+        self.preferredContentSize = viewController.preferredContentSize
     }
 }
 
@@ -189,7 +178,8 @@ class ViewController: UIViewController {
 
     @objc private func didTap() {
         let firstVC = SmallViewControllerNoNavBar()
-        let containerController = PopoverPushNavigationController(rootViewController: firstVC)
+//        let containerController = UINavigationController(rootViewController: firstVC)
+        let containerController = PopoverPushController(rootViewController: firstVC)
         containerController.modalPresentationStyle = .popover
         containerController.popoverPresentationController?.sourceRect = button.frame
         containerController.popoverPresentationController?.sourceView = self.view
