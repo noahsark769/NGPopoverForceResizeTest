@@ -118,13 +118,21 @@ class SmallViewControllerNoNavBar: UIViewController {
 
         self.navigationController?.setToolbarHidden(true, animated: false)
         self.navigationController?.setNavigationBarHidden(true, animated: false)
-        self.preferredContentSize = self.view.systemLayoutSizeFitting(
-            UIView.layoutFittingCompressedSize
-        )
+        self.setPreferredContentSizeFromAutolayout()
     }
 
     @objc private func didTap() {
         self.navigationController?.pushViewController(LargeViewControllerWithNavBar(), animated: true)
+    }
+
+    func setPreferredContentSizeFromAutolayout() {
+        let contentSize = self.view.systemLayoutSizeFitting(
+            UIView.layoutFittingCompressedSize
+        )
+        self.preferredContentSize = contentSize
+        self.popoverPresentationController?
+            .presentedViewController
+            .preferredContentSize = contentSize
     }
 }
 
@@ -134,7 +142,6 @@ final class PopoverPushController: UIViewController {
     init(rootViewController: UIViewController) {
         self.wrappedNavigationController = UINavigationController(rootViewController: rootViewController)
         super.init(nibName: nil, bundle: nil)
-        self.wrappedNavigationController.delegate = self
     }
 
     required init?(coder aDecoder: NSCoder) {
@@ -146,14 +153,6 @@ final class PopoverPushController: UIViewController {
         wrappedNavigationController.willMove(toParent: self)
         self.addChild(wrappedNavigationController)
         self.view.addSubview(wrappedNavigationController.view)
-    }
-}
-
-extension PopoverPushController: UINavigationControllerDelegate {
-    func navigationController(_ navigationController: UINavigationController, willShow viewController: UIViewController, animated: Bool) {
-        // Set our preferred content size so that UIKit knows to animate down to the new view controller's
-        // preferred content size
-        self.preferredContentSize = viewController.preferredContentSize
     }
 }
 
@@ -178,7 +177,6 @@ class ViewController: UIViewController {
 
     @objc private func didTap() {
         let firstVC = SmallViewControllerNoNavBar()
-//        let containerController = UINavigationController(rootViewController: firstVC)
         let containerController = PopoverPushController(rootViewController: firstVC)
         containerController.modalPresentationStyle = .popover
         containerController.popoverPresentationController?.sourceRect = button.frame
